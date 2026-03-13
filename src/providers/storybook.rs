@@ -53,7 +53,7 @@ impl StoryProvider for StorybookProvider {
       stories.push(Story {
         id: entry.id.clone(),
         title: entry.title.clone(),
-        url: format!("{}/iframe.html?id={}&viewMode=story", source, entry.id),
+        url: format!("iframe.html?id={}&viewMode=story", entry.id),
       });
     }
   

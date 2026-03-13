@@ -1,4 +1,5 @@
 mod cli;
+mod core;
 mod models;
 mod providers;
 mod server;
@@ -16,13 +17,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   let server_dir = args.storybook_url.clone();
   let port = 1337;
-
   tokio::spawn(async move {
     if let Err(e) = server::start(server_dir, port).await {
       eprintln!("❌ Server error: {}", e);
     }
   });
-
   tokio::time::sleep(Duration::from_millis(100)).await;
 
   let provider: Box<dyn StoryProvider> = match args.provider {
@@ -30,16 +29,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ProviderType::Ladle => unimplemented!("Ladle provider is not implemented yet"),
     ProviderType::Histoire => unimplemented!("Histoire provider is not implemented yet"),
   };
-
   println!("📦 Using provider: {}", provider.name());
 
   let stories = provider.fetch_stories(&args.storybook_url).await?;
-
   println!("✅ Fetched {} stories", stories.len());
 
-  for story in stories {
-    println!("🔍 Processing story: {}", story.title);
-  }
+  core::runner::run_snapshots(stories, port).await?;
+  println!("🎉 Lumen diff completed successfully!");
 
   Ok(())
 }
