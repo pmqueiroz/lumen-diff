@@ -6,7 +6,7 @@ authors = ["Peam <contact@pmqueiroz.dev>"]
 description = "High-performance visual regression testing tool"
 repository = "https://github.com/pmqueiroz/lumen-diff"
 license = "MIT"
-keywords = ["cli", "testing", "visual regression", "diff", "storybook"]
+keywords = ["cli", "testing", "diff", "storybook"]
 categories = ["command-line-utilities", "development-tools::testing"]
 readme = "README.md"
 
