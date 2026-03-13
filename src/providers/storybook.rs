@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
 use tokio::fs;
+use tracing::info;
 
 #[derive(Deserialize)]
 struct StorybookIndex {
@@ -40,7 +41,7 @@ impl StoryProvider for StorybookProvider {
   async fn fetch_stories(&self, source: &str) -> Result<Vec<Story>, Box<dyn Error>> {
     let path = Path::new(source).join("index.json");
     
-    println!("Fetching stories from Storybook at {}", path.display());
+    info!("📖 Fetching stories from Storybook at {}", path.display());
 
     let file_content = fs::read_to_string(&path).await?;
     let index: StorybookIndex = serde_json::from_str(&file_content)?;

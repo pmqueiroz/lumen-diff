@@ -5,6 +5,7 @@ use chromiumoxide::cdp::browser_protocol::emulation::SetDeviceMetricsOverridePar
 use futures::StreamExt;
 use std::path::Path;
 use tokio::fs;
+use tracing::{info, error};
 
 struct SnapshotTask {
   story: Story,
@@ -12,7 +13,7 @@ struct SnapshotTask {
 }
 
 pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>> {
-  println!("🚀 Starting snapshot runner with {} stories", stories.len());
+  info!("🚀 Starting snapshot runner with {} stories", stories.len());
 
   let (mut browser, mut handler) = Browser::launch(
     BrowserConfig::builder().build()?,
@@ -22,7 +23,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
   let handler_task = tokio::spawn(async move {
     while let Some(h) = handler.next().await {
       if let Err(e) = h {
-        eprintln!("❌ Browser event error: {}", e);
+        error!("❌ Browser event error: {}", e);
       }
     }
   });
@@ -40,7 +41,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
     }
   }
 
-  println!("📸 Capturing snapshots...");
+  info!("📸 Capturing snapshots...");
 
   futures::stream::iter(tasks)
     .map(|task| {
@@ -54,7 +55,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
         let page = match browser.new_page(full_url).await {
           Ok(p) => p,
           Err(e) => {
-            eprintln!("❌ Failed to open page for '{}': {}", task.story.id, e);
+            error!("❌ Failed to open page for '{}': {}", task.story.id, e);
             return;
           }
         };
@@ -68,7 +69,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
           .unwrap();
 
         if let Err(e) = page.execute(metrics).await {
-          eprintln!("❌ Failed to set viewport for '{}': {}", task.story.id, e);
+          error!("❌ Failed to set viewport for '{}': {}", task.story.id, e);
           let _ = page.close().await;
           return;
         }
@@ -83,8 +84,8 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
         ).await;
 
         match screenshot_result {
-          Ok(_) => println!("✅ Saved snapshot for '{}' at '{}'", task.story.id, filepath.display()),
-          Err(e) => eprintln!("❌ Failed to save snapshot for '{}': {}", task.story.id, e),
+          Ok(_) => info!("✅ Saved snapshot for '{}' at '{}'", task.story.id, filepath.display()),
+          Err(e) => error!("❌ Failed to save snapshot for '{}': {}", task.story.id, e),
         }
 
         let _ = page.close().await;
@@ -94,7 +95,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
     .collect::<Vec<_>>()
     .await;
 
-  println!("✅ Snapshots saved to '{}'", output_dir.display());
+  info!("✅ Snapshots saved to '{}'", output_dir.display());
 
   browser.close().await?;
   handler_task.await?;

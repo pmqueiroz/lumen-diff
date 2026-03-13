@@ -3,9 +3,10 @@ use image::RgbaImage;
 use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
+use tracing::{error, info, warn};
 
 pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>> {
-  println!(
+  info!(
     "🔍 Running visual diff with threshold: {}",
     config.threshold
   );
@@ -23,7 +24,7 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
     .collect::<Vec<_>>();
 
   if entries.is_empty() {
-    println!("⚠️ No snapshots found in .lumendiff/snapshots");
+    warn!("⚠️ No snapshots found in .lumendiff/snapshots");
     return Ok(());
   }
 
@@ -36,7 +37,7 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
       let diff_path = diffs_dir.join(filename);
 
       if !baseline_path.exists() {
-        println!(
+        warn!(
           "⚠️ No baseline found for {}, skipping diff",
           filename.to_string_lossy()
         );
@@ -65,7 +66,7 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
           if score >= min_score_accepted {
             true
           } else {
-            println!(
+            error!(
               "❌ {} differs from baseline (score: {:.4}), saving diff image",
               filename.to_string_lossy(),
               score
@@ -77,7 +78,7 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
           }
         }
         Err(e) => {
-          eprintln!(
+          error!(
             "❌ Failed to compare images for {}: {}",
             filename.to_string_lossy(),
             e
@@ -91,10 +92,10 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
   let falhas = results.iter().filter(|&&passed| !passed).count();
 
   if falhas > 0 {
-    println!("❌ {} diffs found that exceed the threshold", falhas);
-    println!("📁 Check the .lumendiff/diffs directory for details");
+    error!("❌ {} diffs found that exceed the threshold", falhas);
+    error!("📁 Check the .lumendiff/diffs directory for details");
   } else {
-    println!("✅ All snapshots are within the acceptable threshold");
+    info!("✅ All snapshots are within the acceptable threshold");
   }
 
   Ok(())

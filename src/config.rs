@@ -2,6 +2,7 @@ use crate::cli::{Cli, ProviderType};
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
+use tracing::{error, info};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -64,14 +65,14 @@ pub fn load_config() -> LumenConfig {
     if let Ok(file_content) = fs::read_to_string(config_path) {
       match serde_yaml::from_str::<LumenConfig>(&file_content) {
         Ok(config) => {
-          println!("✅ Loaded configuration from .lumendiff.yaml");
+          info!("✅ Loaded configuration from .lumendiff.yaml");
           return config;
         }
-        Err(e) => eprintln!("❌ Failed to parse .lumendiff.yaml: {}", e),
+        Err(e) => error!("❌ Failed to parse .lumendiff.yaml: {}", e),
       }
     }
   } else {
-    println!("⚠️ No .lumendiff.yaml found, using default configuration");
+    info!("⚠️ No .lumendiff.yaml found, using default configuration");
   }
 
   LumenConfig::default()
