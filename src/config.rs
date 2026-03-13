@@ -8,6 +8,7 @@ pub struct LumenConfig {
   pub storybook_shots: StorybookShotsConfig,
   pub wait_before_screenshot: Option<u64>,
   pub concurrency: Option<usize>,
+  pub threshold: Option<f64>,
 }
 
 #[derive(Deserialize)]
@@ -26,6 +27,7 @@ impl Default for LumenConfig {
       },
       wait_before_screenshot: Some(500),
       concurrency: Some(8),
+      threshold: Some(0.05),
     }
   }
 }

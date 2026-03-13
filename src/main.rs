@@ -37,6 +37,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   println!("✅ Fetched {} stories", stories.len());
 
   core::runner::run_snapshots(stories, port, &config).await?;
+
+  if let Err(e) = core::diff::run_diff(&config) {
+    eprintln!("❌ Diff error: {}", e);
+  }
+
   println!("🎉 Lumen diff completed successfully!");
 
   Ok(())

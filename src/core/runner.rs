@@ -27,7 +27,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
     }
   });
 
-  let output_dir = Path::new(".lumendiff/baseline");
+  let output_dir = Path::new(".lumendiff/snapshots");
   fs::create_dir_all(output_dir).await?;
 
   let mut tasks = Vec::new();
