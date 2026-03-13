@@ -1,4 +1,5 @@
 mod cli;
+mod config;
 mod core;
 mod models;
 mod providers;
@@ -11,6 +12,7 @@ use std::time::Duration;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+  let config = config::load_config();
   let args = Cli::parse();
 
   println!("🚀 Starting lumen diff");
@@ -34,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   let stories = provider.fetch_stories(&args.storybook_url).await?;
   println!("✅ Fetched {} stories", stories.len());
 
-  core::runner::run_snapshots(stories, port).await?;
+  core::runner::run_snapshots(stories, port, &config).await?;
   println!("🎉 Lumen diff completed successfully!");
 
   Ok(())
