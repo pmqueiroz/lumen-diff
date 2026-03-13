@@ -7,17 +7,17 @@ use clap::{Parser, ValueEnum};
   about = "Blazing fast visual regression testing (according to copilot)"
 )]
 pub struct Cli {
-  #[arg(long, default_value = "storybook-static")]
-  pub storybook_url: String,
+  #[arg(long)]
+  pub storybook_url: Option<String>,
 
-  #[arg(short, long, value_enum, default_value_t = ProviderType::Storybook)]
-  pub provider: ProviderType,
+  #[arg(short, long, value_enum)]
+  pub provider: Option<ProviderType>,
 
   #[arg(long)]
-  pub update: bool,
+  pub update: Option<bool>,
 }
 
-#[derive(ValueEnum, Debug, Clone)]
+#[derive(ValueEnum, Debug, Clone, serde::Deserialize)]
 pub enum ProviderType {
   Storybook,
   Ladle,

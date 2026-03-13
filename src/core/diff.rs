@@ -1,5 +1,5 @@
 use crate::config::LumenConfig;
-use image::{Rgba, RgbaImage};
+use image::RgbaImage;
 use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
@@ -7,7 +7,7 @@ use std::path::Path;
 pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>> {
   println!(
     "🔍 Running visual diff with threshold: {}",
-    config.threshold.unwrap_or(0.05)
+    config.threshold
   );
 
   let snapshots_dir = Path::new(".lumendiff/snapshots");
@@ -60,7 +60,7 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
 
       match compare_images(&img_baseline, &img_snapshot) {
         Ok((score, diff_image)) => {
-          let min_score_accepted = 1.0 - config.threshold.unwrap_or(0.05);
+          let min_score_accepted = 1.0 - config.threshold;
 
           if score >= min_score_accepted {
             true

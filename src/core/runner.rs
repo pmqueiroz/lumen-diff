@@ -73,7 +73,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
           return;
         }
 
-        tokio::time::sleep(std::time::Duration::from_millis(config.wait_before_screenshot.unwrap_or(500))).await;
+        tokio::time::sleep(std::time::Duration::from_millis(config.wait_before_screenshot)).await;
 
         let screenshot_result = page.save_screenshot(
           chromiumoxide::page::ScreenshotParams::builder()
@@ -90,7 +90,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
         let _ = page.close().await;
       }
     })
-    .buffer_unordered(config.concurrency.unwrap_or(8))
+    .buffer_unordered(config.concurrency)
     .collect::<Vec<_>>()
     .await;
 
