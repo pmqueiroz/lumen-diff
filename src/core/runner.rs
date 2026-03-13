@@ -50,7 +50,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
       async move {
         let full_url = format!("http://localhost:{}/{}", port, task.story.url);
         let safe_filename = task.story.title.replace("--", "_").replace("-", "_").replace(" ", "_").replace("/", "_");
-        let filepath = output_dir.join(format!("{}.png", safe_filename));
+        let filepath = output_dir.join(format!("{}_{}.png", safe_filename, task.breakpoint));
 
         let page = match browser.new_page(full_url).await {
           Ok(p) => p,
