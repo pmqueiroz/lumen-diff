@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 
-pub fn run_diff(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>> {
   println!(
     "🔍 Running visual diff with threshold: {}",
     config.threshold.unwrap_or(0.05)
@@ -17,10 +17,10 @@ pub fn run_diff(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>> 
   fs::create_dir_all(baseline_dir)?;
   fs::create_dir_all(diffs_dir)?;
 
-  let entries: Vec<_> = fs::read_dir(snapshots_dir)?
+  let entries = fs::read_dir(snapshots_dir)?
     .filter_map(Result::ok)
-    .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "png"))
-    .collect();
+    .filter(|e| e.path().extension().map_or(false, |ext| ext == "png"))
+    .collect::<Vec<_>>();
 
   if entries.is_empty() {
     println!("⚠️ No snapshots found in .lumendiff/snapshots");
@@ -44,23 +44,25 @@ pub fn run_diff(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>> 
         return true;
       }
 
-      let img_snapshot = image::open(&snapshot_path)
-        .expect("Failed to open snapshot image")
-        .to_rgba8();
-      let img_baseline = image::open(&baseline_path)
-        .expect("Failed to open baseline image")
-        .to_rgba8();
+      let snap_bytes = fs::read(&snapshot_path).unwrap_or_default();
+      let base_bytes = fs::read(&baseline_path).unwrap_or_default();
 
-      match compare_images(&img_snapshot, &img_baseline) {
+      if snap_bytes == base_bytes {
+        return true;
+      }
+
+      let img_snapshot = image::open(&snapshot_path)
+        .expect("❌ Failed to open snapshot")
+        .into_rgba8();
+      let img_baseline = image::open(&baseline_path)
+        .expect("❌ Failed to open baseline")
+        .into_rgba8();
+
+      match compare_images(&img_baseline, &img_snapshot) {
         Ok((score, diff_image)) => {
           let min_score_accepted = 1.0 - config.threshold.unwrap_or(0.05);
 
           if score >= min_score_accepted {
-            println!(
-              "✅ {} is similar to baseline (score: {:.4})",
-              filename.to_string_lossy(),
-              score
-            );
             true
           } else {
             println!(
@@ -100,35 +102,46 @@ pub fn run_diff(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>> 
 
 fn compare_images(baseline: &RgbaImage, snapshot: &RgbaImage) -> Result<(f64, RgbaImage), String> {
   let (width, height) = baseline.dimensions();
-  let (snap_width, snap_height) = snapshot.dimensions();
 
-  if width != snap_width || height != snap_height {
+  if (width, height) != snapshot.dimensions() {
     return Err(format!(
-      "Image dimensions do not match: baseline is {}x{}, snapshot is {}x{}",
-      width, height, snap_width, snap_height
+      "❌ Different dimensions: {}x{} vs {:?}",
+      width,
+      height,
+      snapshot.dimensions()
     ));
   }
 
-  let mut diff_image = RgbaImage::new(width, height);
+  let base_raw = baseline.as_raw();
+  let snap_raw = snapshot.as_raw();
+
+  let mut diff_raw = vec![0u8; base_raw.len()];
   let mut diff_pixels = 0;
 
-  for y in 0..height {
-    for x in 0..width {
-      let p1 = baseline.get_pixel(x, y);
-      let p2 = snapshot.get_pixel(x, y);
-      let is_diff = p1[0] != p2[0] || p1[1] != p2[1] || p1[2] != p2[2];
-
-      if is_diff {
-        diff_pixels += 1;
-        diff_image.put_pixel(x, y, Rgba([255, 0, 0, 255]));
-      } else {
-        diff_image.put_pixel(x, y, Rgba([p1[0], p1[1], p1[2], 75]));
-      }
+  for ((b_chunk, s_chunk), d_chunk) in base_raw
+    .chunks_exact(4)
+    .zip(snap_raw.chunks_exact(4))
+    .zip(diff_raw.chunks_exact_mut(4))
+  {
+    if b_chunk == s_chunk {
+      d_chunk[0] = b_chunk[0];
+      d_chunk[1] = b_chunk[1];
+      d_chunk[2] = b_chunk[2];
+      d_chunk[3] = 75;
+    } else {
+      diff_pixels += 1;
+      d_chunk[0] = 255;
+      d_chunk[1] = 0;
+      d_chunk[2] = 0;
+      d_chunk[3] = 255;
     }
   }
 
-  let total_pixels = width * height;
+  let total_pixels = (width * height) as usize;
   let similarity_score = 1.0 - (diff_pixels as f64 / total_pixels as f64);
+
+  let diff_image =
+    RgbaImage::from_raw(width, height, diff_raw).expect("❌ Failed to create diff image");
 
   Ok((similarity_score, diff_image))
 }

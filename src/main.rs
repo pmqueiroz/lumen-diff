@@ -36,9 +36,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   let stories = provider.fetch_stories(&args.storybook_url).await?;
   println!("✅ Fetched {} stories", stories.len());
 
-  core::runner::run_snapshots(stories, port, &config).await?;
+  // core::runner::run_snapshots(stories, port, &config).await?;
 
-  if let Err(e) = core::diff::run_diff(&config) {
+  if let Err(e) = core::diff::run_diffs(&config) {
     eprintln!("❌ Diff error: {}", e);
   }
 
