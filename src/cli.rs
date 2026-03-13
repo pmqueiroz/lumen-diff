@@ -7,13 +7,13 @@ use clap::{Parser, ValueEnum};
   about = "Blazing fast visual regression testing (according to copilot)"
 )]
 pub struct Cli {
-  #[arg(short, long, default_value = "http://localhost:6006")]
-  pub url: String,
+  #[arg(long, default_value = "storybook-static")]
+  pub storybook_url: String,
 
   #[arg(short, long, value_enum, default_value_t = ProviderType::Storybook)]
   pub provider: ProviderType,
 
-  #[arg(short, long)]
+  #[arg(long)]
   pub update: bool,
 }
 

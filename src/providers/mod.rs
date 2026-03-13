@@ -8,5 +8,5 @@ pub mod storybook;
 pub trait StoryProvider {
   fn name(&self) -> &'static str;
 
-  async fn fetch_stories(&self, base_url: &str) -> Result<Vec<Story>, Box<dyn Error>>;
+  async fn fetch_stories(&self, source: &str) -> Result<Vec<Story>, Box<dyn Error>>;
 }

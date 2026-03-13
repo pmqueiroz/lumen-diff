@@ -1,7 +1,25 @@
 use super::StoryProvider;
 use crate::models::Story;
 use async_trait::async_trait;
+use serde::Deserialize;
+use std::collections::HashMap;
 use std::error::Error;
+use std::path::Path;
+use tokio::fs;
+
+#[derive(Deserialize)]
+struct StorybookIndex {
+  entries: HashMap<String, StorybookEntry>,
+}
+
+#[derive(Deserialize)]
+struct StorybookEntry {
+  id: String,
+  title: String,
+  #[serde(default)]
+  #[serde(rename = "type")]
+  entry_type: String,
+}
 
 pub struct StorybookProvider;
 
@@ -17,21 +35,28 @@ impl StoryProvider for StorybookProvider {
     "Storybook"
   }
 
-  async fn fetch_stories(&self, base_url: &str) -> Result<Vec<Story>, Box<dyn Error>> {
-    let url = format!("{}/stories.json", base_url);
-    let response = reqwest::get(&url).await?.json::<serde_json::Value>().await?;
+  async fn fetch_stories(&self, source: &str) -> Result<Vec<Story>, Box<dyn Error>> {
+    let path = Path::new(source).join("index.json");
+    
+    println!("Fetching stories from Storybook at {}", path.display());
 
-    let stories = response["stories"]
-      .as_object()
-      .ok_or("Invalid response format")?
-      .iter()
-      .map(|(id, story)| Story {
-        id: id.clone(),
-        title: story["name"].as_str().unwrap_or("").to_string(),
-        url: format!("{}/iframe.html?id={}", base_url, id),
-      })
-      .collect();
+    let file_content = fs::read_to_string(&path).await?;
+    let index: StorybookIndex = serde_json::from_str(&file_content)?;
 
+    let mut stories = Vec::new();
+
+    for (_, entry) in index.entries {
+      if entry.entry_type == "docs" {
+        continue;
+      }
+
+      stories.push(Story {
+        id: entry.id.clone(),
+        title: entry.title.clone(),
+        url: format!("{}/iframe.html?id={}&viewMode=story", source, entry.id),
+      });
+    }
+  
     Ok(stories)
   }
 }

@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   println!("📦 Using provider: {}", provider.name());
 
-  let stories = provider.fetch_stories(&args.url).await?;
+  let stories = provider.fetch_stories(&args.storybook_url).await?;
 
   println!("✅ Fetched {} stories", stories.len());
 
