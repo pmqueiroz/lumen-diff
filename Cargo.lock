@@ -1002,6 +1002,7 @@ dependencies = [
  "chromiumoxide",
  "clap",
  "futures",
+ "heck",
  "reqwest",
  "serde",
  "serde_json",

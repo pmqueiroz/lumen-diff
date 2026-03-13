@@ -1,6 +1,7 @@
 use super::StoryProvider;
 use crate::models::Story;
 use async_trait::async_trait;
+use heck::ToKebabCase;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::error::Error;
@@ -14,6 +15,7 @@ struct StorybookIndex {
 
 #[derive(Deserialize)]
 struct StorybookEntry {
+  name: String,
   id: String,
   title: String,
   #[serde(default)]
@@ -51,12 +53,17 @@ impl StoryProvider for StorybookProvider {
       }
 
       stories.push(Story {
-        id: entry.id.clone(),
-        title: entry.title.clone(),
+        id: build_story_id(&entry),
         url: format!("iframe.html?id={}&viewMode=story", entry.id),
       });
     }
   
     Ok(stories)
   }
+}
+
+fn build_story_id(raw_story: &StorybookEntry) -> String {
+  let parsed_title = raw_story.title.replace("/", "-").to_kebab_case();
+  let parsed_name = raw_story.name.replace("/", "-").to_kebab_case();
+  format!("{}--{}", parsed_title, parsed_name)
 }

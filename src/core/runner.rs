@@ -49,13 +49,12 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
 
       async move {
         let full_url = format!("http://localhost:{}/{}", port, task.story.url);
-        let safe_filename = task.story.title.replace("--", "_").replace("-", "_").replace(" ", "_").replace("/", "_");
-        let filepath = output_dir.join(format!("{}_{}.png", safe_filename, task.breakpoint));
+        let filepath = output_dir.join(format!("{}__[w{}px].png", task.story.id, task.breakpoint));
 
         let page = match browser.new_page(full_url).await {
           Ok(p) => p,
           Err(e) => {
-            eprintln!("❌ Failed to open page for '{}': {}", task.story.title, e);
+            eprintln!("❌ Failed to open page for '{}': {}", task.story.id, e);
             return;
           }
         };
@@ -69,7 +68,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
           .unwrap();
 
         if let Err(e) = page.execute(metrics).await {
-          eprintln!("❌ Failed to set viewport for '{}': {}", task.story.title, e);
+          eprintln!("❌ Failed to set viewport for '{}': {}", task.story.id, e);
           let _ = page.close().await;
           return;
         }
@@ -84,8 +83,8 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
         ).await;
 
         match screenshot_result {
-          Ok(_) => println!("✅ Saved snapshot for '{}' at '{}'", task.story.title, filepath.display()),
-          Err(e) => eprintln!("❌ Failed to save snapshot for '{}': {}", task.story.title, e),
+          Ok(_) => println!("✅ Saved snapshot for '{}' at '{}'", task.story.id, filepath.display()),
+          Err(e) => eprintln!("❌ Failed to save snapshot for '{}': {}", task.story.id, e),
         }
 
         let _ = page.close().await;
