@@ -8,7 +8,7 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16) -> Result<(), Box<dyn
   println!("🚀 Starting snapshot runner with {} stories", stories.len());
 
   let (mut browser, mut handler) = Browser::launch(
-    BrowserConfig::builder().with_head().build()?,
+    BrowserConfig::builder().build()?,
   )
   .await?;
 
@@ -16,7 +16,6 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16) -> Result<(), Box<dyn
     while let Some(h) = handler.next().await {
       if let Err(e) = h {
         eprintln!("❌ Browser event error: {}", e);
-        // break;
       }
     }
   });
@@ -25,28 +24,49 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16) -> Result<(), Box<dyn
   fs::create_dir_all(output_dir).await?;
 
   println!("📸 Capturing snapshots...");
-  let page = browser.new_page("about:blank").await?;
 
-  for story in stories {
-    let full_url = format!("http://localhost:{}/{}", port, story.url);
-    println!("🔍 Processing story at: {}", full_url);
+  // @TODO config through config file
+  let concurrency_limit = 8;
 
-    let _ = page.goto("about:blank").await;
+  futures::stream::iter(stories)
+    .map(|story| {
+      let browser = &browser;
+      let output_dir = &output_dir;
 
-    page.goto(&full_url).await?;
-    
-    tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+      async move {
+        let full_url = format!("http://localhost:{}/{}", port, story.url);
+        let safe_filename = story.title.replace("--", "_").replace("-", "_").replace(" ", "_").replace("/", "_");
+        let filepath = output_dir.join(format!("{}.png", safe_filename));
 
-    let safe_filename = story.title.replace("--", "_").replace("-", "_").replace(" ", "_").replace("/", "_");
-    let filepath = output_dir.join(format!("{}.png", safe_filename));
+        let page = match browser.new_page(full_url).await {
+          Ok(p) => p,
+          Err(e) => {
+            eprintln!("❌ Failed to open page for '{}': {}", story.title, e);
+            return;
+          }
+        };
 
-    page.save_screenshot(
-      chromiumoxide::page::ScreenshotParams::builder()
-        .format(chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotFormat::Png)
-        .build(),
-        &filepath,
-    ).await?;
-  }
+        // @TODO config through config file
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
+        let screenshot_result = page.save_screenshot(
+          chromiumoxide::page::ScreenshotParams::builder()
+            .format(chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotFormat::Png)
+            .build(),
+            &filepath,
+        ).await;
+
+        match screenshot_result {
+          Ok(_) => println!("✅ Saved snapshot for '{}' at '{}'", story.title, filepath.display()),
+          Err(e) => eprintln!("❌ Failed to save snapshot for '{}': {}", story.title, e),
+        }
+
+        let _ = page.close().await;
+      }
+    })
+    .buffer_unordered(concurrency_limit)
+    .collect::<Vec<_>>()
+    .await;
 
   println!("✅ Snapshots saved to '{}'", output_dir.display());
 
