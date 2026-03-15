@@ -1,0 +1,26 @@
+name: 'LumenDiff Visual Regression'
+description: 'High-performance visual regression testing tool'
+branding:
+  icon: 'camera'
+  color: 'orange'
+inputs:
+  version:
+    required: false
+    default: 'latest'
+
+runs:
+  using: composite
+  steps:
+    - name: Install pre-compiled lumendiff
+      shell: bash
+      run: |
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/pmqueiroz/lumen-diff/releases/latest/download/lumendiff-installer.sh | sh
+        else
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/pmqueiroz/lumen-diff/releases/download/${{ inputs.version }}/lumendiff-installer.sh | sh
+        fi
+
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+    - name: Execute lumendiff
+      shell: bash
+      run: lumendiff
