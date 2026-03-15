@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/pmqueiroz/lumen-diff/compare/v0.1.0...v0.2.0) (2026-03-15)
+
+
+### Features
+
+* limit chromium with args ([cda19f0](https://github.com/pmqueiroz/lumen-diff/commit/cda19f0495affd672aa2726fd2cee2adf85d8ba0))
+
 ## 0.1.0 (2026-03-15)
 
 
