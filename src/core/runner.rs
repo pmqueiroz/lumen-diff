@@ -1,22 +1,31 @@
-use crate::models::Story;
 use crate::config::LumenConfig;
+use crate::models::Story;
 use chromiumoxide::browser::{Browser, BrowserConfig};
 use chromiumoxide::cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams;
 use futures::StreamExt;
 use std::path::Path;
 use tokio::fs;
-use tracing::{info, error};
+use tracing::{error, info};
 
 struct SnapshotTask {
   story: Story,
   breakpoint: u32,
 }
 
-pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run_snapshots(
+  stories: Vec<Story>,
+  port: u16,
+  config: &LumenConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
   info!("🚀 Starting snapshot runner with {} stories", stories.len());
 
   let (mut browser, mut handler) = Browser::launch(
-    BrowserConfig::builder().build()?,
+    BrowserConfig::builder()
+      .arg("--no-sandbox")
+      .arg("--disabled-setupid-sandbox")
+      .arg("--disable-dev-shm-usage")
+      .arg("--disable-gpu")
+      .build()?,
   )
   .await?;
 
@@ -74,17 +83,26 @@ pub async fn run_snapshots(stories: Vec<Story>, port: u16, config: &LumenConfig)
           return;
         }
 
-        tokio::time::sleep(std::time::Duration::from_millis(config.wait_before_screenshot)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(
+          config.wait_before_screenshot,
+        ))
+        .await;
 
-        let screenshot_result = page.save_screenshot(
-          chromiumoxide::page::ScreenshotParams::builder()
-            .format(chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotFormat::Png)
-            .build(),
+        let screenshot_result = page
+          .save_screenshot(
+            chromiumoxide::page::ScreenshotParams::builder()
+              .format(chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotFormat::Png)
+              .build(),
             &filepath,
-        ).await;
+          )
+          .await;
 
         match screenshot_result {
-          Ok(_) => info!("✅ Saved snapshot for '{}' at '{}'", task.story.id, filepath.display()),
+          Ok(_) => info!(
+            "✅ Saved snapshot for '{}' at '{}'",
+            task.story.id,
+            filepath.display()
+          ),
           Err(e) => error!("❌ Failed to save snapshot for '{}': {}", task.story.id, e),
         }
 
