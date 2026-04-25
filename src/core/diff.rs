@@ -37,10 +37,11 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
       let diff_path = diffs_dir.join(filename);
 
       if !baseline_path.exists() {
-        warn!(
+        let message = format!(
           "⚠️ No baseline found for {}, skipping diff",
           filename.to_string_lossy()
         );
+        warn!(message);
         let _ = fs::copy(&snapshot_path, &baseline_path);
         return true;
       }
