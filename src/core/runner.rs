@@ -5,7 +5,8 @@ use chromiumoxide::cdp::browser_protocol::emulation::SetDeviceMetricsOverridePar
 use futures::StreamExt;
 use std::path::Path;
 use tokio::fs;
-use tracing::{error, info};
+use tokio::time::{timeout, Duration};
+use tracing::{error, info, warn};
 
 struct SnapshotTask {
   story: Story,
@@ -61,10 +62,14 @@ pub async fn run_snapshots(
         let full_url = format!("http://localhost:{}/{}", port, task.story.url);
         let filepath = output_dir.join(format!("{}__[w{}px].png", task.story.id, task.breakpoint));
 
-        let page = match browser.new_page(full_url).await {
-          Ok(p) => p,
-          Err(e) => {
+        let page = match timeout(Duration::from_secs(30), browser.new_page(full_url)).await {
+          Ok(Ok(p)) => p,
+          Ok(Err(e)) => {
             error!("❌ Failed to open page for '{}': {}", task.story.id, e);
+            return;
+          }
+          Err(_) => {
+            warn!("⏱ Timeout opening page for '{}', skipping", task.story.id);
             return;
           }
         };
@@ -77,10 +82,18 @@ pub async fn run_snapshots(
           .build()
           .unwrap();
 
-        if let Err(e) = page.execute(metrics).await {
-          error!("❌ Failed to set viewport for '{}': {}", task.story.id, e);
-          let _ = page.close().await;
-          return;
+        match timeout(Duration::from_secs(10), page.execute(metrics)).await {
+          Ok(Ok(_)) => {}
+          Ok(Err(e)) => {
+            error!("❌ Failed to set viewport for '{}': {}", task.story.id, e);
+            let _ = timeout(Duration::from_secs(5), page.close()).await;
+            return;
+          }
+          Err(_) => {
+            warn!("⏱ Timeout setting viewport for '{}', skipping", task.story.id);
+            let _ = timeout(Duration::from_secs(5), page.close()).await;
+            return;
+          }
         }
 
         tokio::time::sleep(std::time::Duration::from_millis(
@@ -88,25 +101,31 @@ pub async fn run_snapshots(
         ))
         .await;
 
-        let screenshot_result = page
-          .save_screenshot(
+        let screenshot_result = timeout(
+          Duration::from_secs(30),
+          page.save_screenshot(
             chromiumoxide::page::ScreenshotParams::builder()
               .format(chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotFormat::Png)
               .build(),
             &filepath,
-          )
-          .await;
+          ),
+        )
+        .await;
 
         match screenshot_result {
-          Ok(_) => info!(
+          Ok(Ok(_)) => info!(
             "✅ Saved snapshot for '{}' at '{}'",
             task.story.id,
             filepath.display()
           ),
-          Err(e) => error!("❌ Failed to save snapshot for '{}': {}", task.story.id, e),
+          Ok(Err(e)) => error!("❌ Failed to save snapshot for '{}': {}", task.story.id, e),
+          Err(_) => warn!(
+            "⏱ Timeout capturing screenshot for '{}', skipping",
+            task.story.id
+          ),
         }
 
-        let _ = page.close().await;
+        let _ = timeout(Duration::from_secs(5), page.close()).await;
       }
     })
     .buffer_unordered(config.concurrency)
@@ -115,8 +134,12 @@ pub async fn run_snapshots(
 
   info!("✅ Snapshots saved to '{}'", output_dir.display());
 
-  browser.close().await?;
-  handler_task.await?;
+  if timeout(Duration::from_secs(15), browser.close()).await.is_err() {
+    warn!("⏱ Timeout closing browser, forcing shutdown");
+  }
+  if timeout(Duration::from_secs(5), handler_task).await.is_err() {
+    warn!("⏱ Timeout waiting for browser handler task");
+  }
 
   Ok(())
 }
