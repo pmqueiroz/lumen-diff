@@ -59,21 +59,23 @@ impl LumenConfig {
 }
 
 pub fn load_config() -> LumenConfig {
-  let config_path = Path::new(".lumendiff.yaml");
+  let candidates = [".lumendiff.yaml", ".lumendiff.yml"];
 
-  if config_path.exists() {
-    if let Ok(file_content) = fs::read_to_string(config_path) {
-      match serde_yaml::from_str::<LumenConfig>(&file_content) {
-        Ok(config) => {
-          info!("✅ Loaded configuration from .lumendiff.yaml");
-          return config;
+  for name in &candidates {
+    let path = Path::new(name);
+    if path.exists() {
+      if let Ok(content) = fs::read_to_string(path) {
+        match serde_yaml::from_str::<LumenConfig>(&content) {
+          Ok(config) => {
+            info!("✅ Loaded configuration from {}", name);
+            return config;
+          }
+          Err(e) => error!("❌ Failed to parse {}: {}", name, e),
         }
-        Err(e) => error!("❌ Failed to parse .lumendiff.yaml: {}", e),
       }
     }
-  } else {
-    info!("⚠️ No .lumendiff.yaml found, using default configuration");
   }
 
+  info!("⚠️ No .lumendiff.yaml/.yml found, using default configuration");
   LumenConfig::default()
 }
