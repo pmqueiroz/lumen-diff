@@ -28,7 +28,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       error!("❌ Server error: {}", e);
     }
   });
-  tokio::time::sleep(Duration::from_millis(100)).await;
+
+  // Probe server readiness instead of fixed sleep
+  let probe_url = format!("http://localhost:{}/", port);
+  for _ in 0..50 {
+    if reqwest::get(&probe_url).await.is_ok() {
+      break;
+    }
+    tokio::time::sleep(Duration::from_millis(20)).await;
+  }
 
   let provider: Box<dyn StoryProvider> = match config.provider {
     ProviderType::Storybook => Box::new(StorybookProvider::new()),
