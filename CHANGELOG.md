@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0](https://github.com/pmqueiroz/lumen-diff/compare/v0.2.0...v0.3.0) (2026-04-26)
+
+
+### Features
+
+* support .yml extension for config file ([d2441d1](https://github.com/pmqueiroz/lumen-diff/commit/d2441d1584ed400244e0ff36d55e2eae87717df2))
+
+
+### Bug Fixes
+
+* add timeouts to CDP operations to prevent process hang ([d249ae1](https://github.com/pmqueiroz/lumen-diff/commit/d249ae179e3c76838d3033e722bbcd78add0f0ad))
+* format message before warn ([1ebbd2b](https://github.com/pmqueiroz/lumen-diff/commit/1ebbd2ba8b3e598d9b6d61f05cb968386b8a993c))
+* handle --update flag in diff step ([6a2159e](https://github.com/pmqueiroz/lumen-diff/commit/6a2159e739689599ea8b4765305c1721b2226841))
+
+
+### Performance Improvements
+
+* eliminate double disk reads and skip diff image alloc on pass ([869f52e](https://github.com/pmqueiroz/lumen-diff/commit/869f52e21d34a9bd232c6d2e8a2cf20a7a50cbe8))
+* replace fixed server sleep with readiness probe ([7c68f8d](https://github.com/pmqueiroz/lumen-diff/commit/7c68f8d144a1389ede65e3c043e017644b57a365))
+
 ## [0.2.0](https://github.com/pmqueiroz/lumen-diff/compare/v0.1.0...v0.2.0) (2026-03-15)
 
 
