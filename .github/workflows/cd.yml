@@ -44,6 +44,7 @@ jobs:
           TAG="v${VERSION}"
 
           echo "Tagging PR #${NUMBER} as ${TAG} at ${SHA}"
+          git fetch --depth=1 origin "${SHA}"
           git tag "${TAG}" "${SHA}"
           git push origin "${TAG}"
 
