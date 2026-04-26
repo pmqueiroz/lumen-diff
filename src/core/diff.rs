@@ -79,7 +79,6 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
         return true;
       }
 
-      // Decode from already-read bytes — avoids second disk read per image
       let img_snapshot = match image::load_from_memory(&snap_bytes) {
         Ok(img) => img.into_rgba8(),
         Err(e) => {
@@ -111,7 +110,6 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
       let snap_raw = img_snapshot.as_raw();
       let total_pixels = (width * height) as usize;
 
-      // Pass 1: count-only, no allocation — skips diff image work for passing stories
       let diff_pixels = base_raw
         .chunks_exact(4)
         .zip(snap_raw.chunks_exact(4))
@@ -131,7 +129,6 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
         similarity_score
       );
 
-      // Pass 2: build diff image only for failing stories
       let diff_image = build_diff_image(base_raw, snap_raw, width, height);
       if let Err(e) = diff_image.save(&diff_path) {
         error!("❌ Failed to save diff image for {}: {}", filename.to_string_lossy(), e);
