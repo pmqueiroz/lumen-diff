@@ -22,7 +22,7 @@ jobs:
           skip-github-release: true
       - name: Tag pending release PRs
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR=$(gh pr list \
             --repo ${{ github.repository }} \
