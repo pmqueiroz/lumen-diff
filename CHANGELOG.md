@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/pmqueiroz/lumen-diff/compare/v0.3.0...v0.3.1) (2026-04-26)
+
+
+### Bug Fixes
+
+* create release tag explicitly after release-please ([b1c8a32](https://github.com/pmqueiroz/lumen-diff/commit/b1c8a325fc641034629902f40544a81f53787d6a))
+* use RELEASE_PLEASE_TOKEN for GitHub Release creation ([6145533](https://github.com/pmqueiroz/lumen-diff/commit/614553374a8748b3d0c90efaa3b049cd2840f3c8))
+
 ## [0.3.0](https://github.com/pmqueiroz/lumen-diff/compare/v0.2.0...v0.3.0) (2026-04-26)
 
 
