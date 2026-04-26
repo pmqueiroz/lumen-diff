@@ -6,11 +6,6 @@ use std::path::Path;
 use tracing::{error, info, warn};
 
 pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>> {
-  info!(
-    "🔍 Running visual diff with threshold: {}",
-    config.threshold
-  );
-
   let snapshots_dir = Path::new(".lumendiff/snapshots");
   let baseline_dir = Path::new(".lumendiff/baseline");
   let diffs_dir = Path::new(".lumendiff/diffs");
@@ -28,6 +23,26 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
     return Ok(());
   }
 
+  if config.update {
+    info!("🔄 Updating baselines from snapshots...");
+    let updated: usize = entries
+      .par_iter()
+      .filter_map(|entry| {
+        let snapshot_path = entry.path();
+        let filename = snapshot_path.file_name().unwrap();
+        let baseline_path = baseline_dir.join(filename);
+        fs::copy(&snapshot_path, &baseline_path).ok().map(|_| 1)
+      })
+      .sum();
+    info!("✅ Updated {} baselines", updated);
+    return Ok(());
+  }
+
+  info!(
+    "🔍 Running visual diff with threshold: {}",
+    config.threshold
+  );
+
   let results: Vec<bool> = entries
     .par_iter()
     .map(|entry| {
@@ -37,11 +52,10 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
       let diff_path = diffs_dir.join(filename);
 
       if !baseline_path.exists() {
-        let message = format!(
+        warn!(
           "⚠️ No baseline found for {}, skipping diff",
           filename.to_string_lossy()
         );
-        warn!(message);
         let _ = fs::copy(&snapshot_path, &baseline_path);
         return true;
       }
@@ -90,10 +104,10 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
     })
     .collect();
 
-  let falhas = results.iter().filter(|&&passed| !passed).count();
+  let failures = results.iter().filter(|&&passed| !passed).count();
 
-  if falhas > 0 {
-    error!("❌ {} diffs found that exceed the threshold", falhas);
+  if failures > 0 {
+    error!("❌ {} diffs found that exceed the threshold", failures);
     error!("📁 Check the .lumendiff/diffs directory for details");
   } else {
     info!("✅ All snapshots are within the acceptable threshold");
