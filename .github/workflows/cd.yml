@@ -55,3 +55,8 @@ jobs:
           gh api repos/${{ github.repository }}/issues/${NUMBER}/labels \
             --method POST \
             --field labels[]="autorelease: tagged"
+
+          gh workflow run release.yml \
+            --repo ${{ github.repository }} \
+            --ref main \
+            --field tag="${TAG}"
