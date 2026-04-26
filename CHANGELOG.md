@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/pmqueiroz/lumen-diff/compare/v0.3.3...v0.3.4) (2026-04-26)
+
+
+### Bug Fixes
+
+* add actions: write permission for workflow dispatch ([4e02359](https://github.com/pmqueiroz/lumen-diff/commit/4e0235932160ff4071dec0e02d9a811aa13b3d24))
+
 ## [0.3.3](https://github.com/pmqueiroz/lumen-diff/compare/v0.3.2...v0.3.3) (2026-04-26)
 
 
