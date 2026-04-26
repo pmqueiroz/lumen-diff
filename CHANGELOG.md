@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.2](https://github.com/pmqueiroz/lumen-diff/compare/v0.3.1...v0.3.2) (2026-04-26)
+
+
+### Bug Fixes
+
+* create release tag via GitHub API instead of git push ([40ee730](https://github.com/pmqueiroz/lumen-diff/commit/40ee73089a2b26306e5a4ca6997686287ab5ebde))
+* fetch merge commit before tagging in shallow clone ([59e927f](https://github.com/pmqueiroz/lumen-diff/commit/59e927fde7e162d2bd53fb25462fbedfe054ec7b))
+* revert to GITHUB_TOKEN now that workflow permissions are write ([98482d9](https://github.com/pmqueiroz/lumen-diff/commit/98482d955a13c3bb594e938d55efa60d5d26e8cf))
+* tag pending release PRs independently of release-please outputs ([781f5dc](https://github.com/pmqueiroz/lumen-diff/commit/781f5dca2c68c8c5633ecad01048e8cc329ec024))
+* use RELEASE_PLEASE_TOKEN for tag creation ([0d02e9e](https://github.com/pmqueiroz/lumen-diff/commit/0d02e9ec6d49f5b7c40a5f9b7f06cb10398639c3))
+
 ## [0.3.1](https://github.com/pmqueiroz/lumen-diff/compare/v0.3.0...v0.3.1) (2026-04-26)
 
 
