@@ -15,7 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           release-type: rust
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           skip-github-release: true
+      - name: Create release tag
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          git tag ${{ steps.release.outputs.tag_name }} ${{ steps.release.outputs.sha }}
+          git push origin ${{ steps.release.outputs.tag_name }}
