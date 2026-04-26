@@ -44,9 +44,10 @@ jobs:
           TAG="v${VERSION}"
 
           echo "Tagging PR #${NUMBER} as ${TAG} at ${SHA}"
-          git fetch --depth=1 origin "${SHA}"
-          git tag "${TAG}" "${SHA}"
-          git push origin "${TAG}"
+          gh api repos/${{ github.repository }}/git/refs \
+            --method POST \
+            --field ref="refs/tags/${TAG}" \
+            --field sha="${SHA}"
 
           gh api repos/${{ github.repository }}/issues/${NUMBER}/labels \
             --method DELETE \
