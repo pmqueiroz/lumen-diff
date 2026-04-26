@@ -60,47 +60,84 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
         return true;
       }
 
-      let snap_bytes = fs::read(&snapshot_path).unwrap_or_default();
-      let base_bytes = fs::read(&baseline_path).unwrap_or_default();
+      let snap_bytes = match fs::read(&snapshot_path) {
+        Ok(b) => b,
+        Err(e) => {
+          error!("❌ Failed to read snapshot {}: {}", filename.to_string_lossy(), e);
+          return false;
+        }
+      };
+      let base_bytes = match fs::read(&baseline_path) {
+        Ok(b) => b,
+        Err(e) => {
+          error!("❌ Failed to read baseline {}: {}", filename.to_string_lossy(), e);
+          return false;
+        }
+      };
 
       if snap_bytes == base_bytes {
         return true;
       }
 
-      let img_snapshot = image::open(&snapshot_path)
-        .expect("❌ Failed to open snapshot")
-        .into_rgba8();
-      let img_baseline = image::open(&baseline_path)
-        .expect("❌ Failed to open baseline")
-        .into_rgba8();
-
-      match compare_images(&img_baseline, &img_snapshot) {
-        Ok((score, diff_image)) => {
-          let min_score_accepted = 1.0 - config.threshold;
-
-          if score >= min_score_accepted {
-            true
-          } else {
-            error!(
-              "❌ {} differs from baseline (score: {:.4}), saving diff image",
-              filename.to_string_lossy(),
-              score
-            );
-            diff_image
-              .save(&diff_path)
-              .expect("Failed to save diff image");
-            false
-          }
-        }
+      // Decode from already-read bytes — avoids second disk read per image
+      let img_snapshot = match image::load_from_memory(&snap_bytes) {
+        Ok(img) => img.into_rgba8(),
         Err(e) => {
-          error!(
-            "❌ Failed to compare images for {}: {}",
-            filename.to_string_lossy(),
-            e
-          );
-          false
+          error!("❌ Failed to decode snapshot {}: {}", filename.to_string_lossy(), e);
+          return false;
         }
+      };
+      let img_baseline = match image::load_from_memory(&base_bytes) {
+        Ok(img) => img.into_rgba8(),
+        Err(e) => {
+          error!("❌ Failed to decode baseline {}: {}", filename.to_string_lossy(), e);
+          return false;
+        }
+      };
+
+      let (width, height) = img_baseline.dimensions();
+      if (width, height) != img_snapshot.dimensions() {
+        error!(
+          "❌ Dimension mismatch for {}: {}x{} vs {:?}",
+          filename.to_string_lossy(),
+          width,
+          height,
+          img_snapshot.dimensions()
+        );
+        return false;
       }
+
+      let base_raw = img_baseline.as_raw();
+      let snap_raw = img_snapshot.as_raw();
+      let total_pixels = (width * height) as usize;
+
+      // Pass 1: count-only, no allocation — skips diff image work for passing stories
+      let diff_pixels = base_raw
+        .chunks_exact(4)
+        .zip(snap_raw.chunks_exact(4))
+        .filter(|(b, s)| b != s)
+        .count();
+
+      let similarity_score = 1.0 - (diff_pixels as f64 / total_pixels as f64);
+      let min_score_accepted = 1.0 - config.threshold;
+
+      if similarity_score >= min_score_accepted {
+        return true;
+      }
+
+      error!(
+        "❌ {} differs from baseline (score: {:.4}), saving diff image",
+        filename.to_string_lossy(),
+        similarity_score
+      );
+
+      // Pass 2: build diff image only for failing stories
+      let diff_image = build_diff_image(base_raw, snap_raw, width, height);
+      if let Err(e) = diff_image.save(&diff_path) {
+        error!("❌ Failed to save diff image for {}: {}", filename.to_string_lossy(), e);
+      }
+
+      false
     })
     .collect();
 
@@ -116,23 +153,8 @@ pub fn run_diffs(config: &LumenConfig) -> Result<(), Box<dyn std::error::Error>>
   Ok(())
 }
 
-fn compare_images(baseline: &RgbaImage, snapshot: &RgbaImage) -> Result<(f64, RgbaImage), String> {
-  let (width, height) = baseline.dimensions();
-
-  if (width, height) != snapshot.dimensions() {
-    return Err(format!(
-      "❌ Different dimensions: {}x{} vs {:?}",
-      width,
-      height,
-      snapshot.dimensions()
-    ));
-  }
-
-  let base_raw = baseline.as_raw();
-  let snap_raw = snapshot.as_raw();
-
+fn build_diff_image(base_raw: &[u8], snap_raw: &[u8], width: u32, height: u32) -> RgbaImage {
   let mut diff_raw = vec![0u8; base_raw.len()];
-  let mut diff_pixels = 0;
 
   for ((b_chunk, s_chunk), d_chunk) in base_raw
     .chunks_exact(4)
@@ -145,7 +167,6 @@ fn compare_images(baseline: &RgbaImage, snapshot: &RgbaImage) -> Result<(f64, Rg
       d_chunk[2] = b_chunk[2];
       d_chunk[3] = 75;
     } else {
-      diff_pixels += 1;
       d_chunk[0] = 255;
       d_chunk[1] = 0;
       d_chunk[2] = 0;
@@ -153,11 +174,5 @@ fn compare_images(baseline: &RgbaImage, snapshot: &RgbaImage) -> Result<(f64, Rg
     }
   }
 
-  let total_pixels = (width * height) as usize;
-  let similarity_score = 1.0 - (diff_pixels as f64 / total_pixels as f64);
-
-  let diff_image =
-    RgbaImage::from_raw(width, height, diff_raw).expect("❌ Failed to create diff image");
-
-  Ok((similarity_score, diff_image))
+  RgbaImage::from_raw(width, height, diff_raw).expect("❌ Failed to create diff image")
 }
