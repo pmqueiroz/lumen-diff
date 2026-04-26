@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.3](https://github.com/pmqueiroz/lumen-diff/compare/v0.3.2...v0.3.3) (2026-04-26)
+
+
+### Bug Fixes
+
+* allow dirty ci file in cargo-dist config ([967bebe](https://github.com/pmqueiroz/lumen-diff/commit/967bebeeefb545c55b220f58009843efca3d4cd0))
+* trigger release via workflow_dispatch instead of tag push ([713b8f4](https://github.com/pmqueiroz/lumen-diff/commit/713b8f4d711e5b720477535036f1834f445cfcc9))
+
 ## [0.3.2](https://github.com/pmqueiroz/lumen-diff/compare/v0.3.1...v0.3.2) (2026-04-26)
 
 
