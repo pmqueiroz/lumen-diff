@@ -68,7 +68,7 @@ threshold: 0.05
 You can override configuration values directly from the terminal:
 
 ```bash
-lumendiff --storybook-dir ./dist/docs --concurrency 12 --threshold 0.02
+lumendiff --storybook-url ./dist/docs --concurrency 12 --threshold 0.02
 
 ```
 
